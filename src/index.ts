@@ -1,6 +1,6 @@
 import { MikroORM } from "@mikro-orm/core";
 import { type } from "os";
-import { __prod__ } from "./constants";
+import { __prod__ } from "./constants/constants";
 import { Post } from "./entities/Post";
 import microConfig from "./mikro-orm.config.js";
 import express from "express";
@@ -18,19 +18,19 @@ import connectRedis from "connect-redis";
 
 const cors = require("cors");
 import Redis from "ioredis";
+import { sendEmail } from "./utils/sendEmails";
+import { User } from "./entities/Users";
 
 const main = async () => {
+  // sendEmail("haideralhafiz@gmail.cm", "hello");
   const orm = await MikroORM.init(microConfig);
-  await orm.getMigrator().up();
+
+  // orm.em.nativeDelete(User, {});
+  // await orm.getMigrator().up();
   const emFork = orm.em.fork();
 
   const generator = orm.getSchemaGenerator();
   await generator.updateSchema();
-
-  const cors_options = {
-    credentials: true,
-    origin: "https://studio.apollographql.com",
-  };
 
   const app = express();
   app.set("trust proxy", true);
@@ -58,7 +58,7 @@ const main = async () => {
 
   app.use(
     session({
-      name: "qid",
+      name: "please-save",
       store: new RedisStore({ client: redis as any, disableTouch: true }),
       cookie: {
         maxAge: 1000 * 60 * 60 * 24 * 365 * 10,
@@ -84,11 +84,17 @@ const main = async () => {
     cache: "bounded",
 
     //plugins: [ApolloServerPluginDrainHttpServer({ httpServer })],
-    context: ({ req, res }) => ({ fork: emFork, redis: redis, req }),
+    context: ({ req, res }) => ({ fork: emFork, redis: redis, req, res }),
   });
 
   await apolloServer.start();
-  apolloServer.applyMiddleware({ app, cors: cors_options });
+  apolloServer.applyMiddleware({
+    app,
+    cors: {
+      credentials: true,
+      origin: ["https://studio.apollographql.com", "http://localhost:3000"],
+    },
+  });
 
   app.listen(4002, () => {
     console.log(" server running on localhost:4002");

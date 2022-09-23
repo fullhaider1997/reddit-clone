@@ -1,7 +1,7 @@
 import { emit } from "process";
 import { Resolver, Query, Ctx, Arg, Int, Mutation } from "type-graphql";
 import { Post } from "../entities/Post";
-import { MyContext } from "../types";
+import { MyContext } from "../types/contextType";
 
 @Resolver()
 export class PostResolver {
