@@ -1,7 +1,7 @@
 # reddit-clone
 my-version
 
-The purpose of this project is not to develop duplicate version of reddit, but to learn how to use strongly-type stack such TypeScript, type-Graphql,
+The purpose of this project is not to develop duplicate version of reddit, but to learn how to use strongly-type stack such TypeScript, type-Graphql, etc. In addition to leanr other interesting technologies such as Next.js, style-componets, chakra-ui, etc.
 
 Finished features
 --------------------
