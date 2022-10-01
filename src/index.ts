@@ -15,22 +15,30 @@ import session from "express-session";
 import { createClient } from "redis";
 import { connect } from "http2";
 import connectRedis from "connect-redis";
-
+import { DataSource } from "typeorm";
 const cors = require("cors");
 import Redis from "ioredis";
 import { sendEmail } from "./utils/sendEmails";
 import { User } from "./entities/Users";
+import { AppDataSource } from "./data-source";
 
 const main = async () => {
-  // sendEmail("haideralhafiz@gmail.cm", "hello");
-  const orm = await MikroORM.init(microConfig);
+  AppDataSource.initialize()
+    .then(async () => {
+      // here you can start to work with your database
+      console.log("init database");
+    })
+    .catch((error) => console.log(error));
+
+  sendEmail("haideralhafiz@gmail.cm", "hello");
+  //const orm = await MikroORM.init(microConfig);
 
   // orm.em.nativeDelete(User, {});
   // await orm.getMigrator().up();
-  const emFork = orm.em.fork();
+  // const emFork = orm.em.fork();
 
-  const generator = orm.getSchemaGenerator();
-  await generator.updateSchema();
+  // const generator = orm.getSchemaGenerator();
+  // await generator.updateSchema();
 
   const app = express();
   app.set("trust proxy", true);
@@ -84,7 +92,7 @@ const main = async () => {
     cache: "bounded",
 
     //plugins: [ApolloServerPluginDrainHttpServer({ httpServer })],
-    context: ({ req, res }) => ({ fork: emFork, redis: redis, req, res }),
+    context: ({ req, res }) => ({ redis: redis, req, res }),
   });
 
   await apolloServer.start();

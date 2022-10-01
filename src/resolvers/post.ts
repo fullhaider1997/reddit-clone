@@ -6,20 +6,14 @@ import { MyContext } from "../types/contextType";
 @Resolver()
 export class PostResolver {
   @Query(() => [Post])
-  posts(@Ctx() { fork }: MyContext): Promise<Post[]> {
-    console.log(fork);
-
-    return fork.find(Post, {});
+  posts(): Promise<Post[]> {
+    return Post.find();
   }
 
   //Arg changes name of indentifier in graphql schema
   @Query(() => Post, { nullable: true })
-  post(
-    @Arg("id", () => Int) id: number,
-    @Ctx() { fork }: MyContext
-  ): Promise<Post | null> {
-    console.log(fork);
-    return fork.findOne(Post, id);
+  post(@Arg("id") id: number): any {
+    return Post.findOne(id);
   }
 
   @Mutation(() => Post)

@@ -18,7 +18,7 @@ export const NavBar: React.FC<NavBarProps> = ({}) => {
     body = (
       <>
         <NextLink href="login">
-          <Link mr={4}> Login</Link>
+          <Link mr={4}> Login dd</Link>
         </NextLink>
 
         <NextLink href="register">
@@ -35,7 +35,7 @@ export const NavBar: React.FC<NavBarProps> = ({}) => {
           <Box p={4}>{data.me.username}</Box>
           <Button
             onClick={() => {
-              logout();
+              //logout();
             }}
             isLoading={logoutFetching}
             variant="link"
@@ -50,8 +50,8 @@ export const NavBar: React.FC<NavBarProps> = ({}) => {
   }
 
   return (
-    <Flex bg="tomato" p={4}>
-      <Box bg="tomato" p={4} ml={"auto"} fontSize={"2xl"}>
+    <Flex bg="turquoise" p={4}>
+      <Box bg="turquoise" p={4} ml={"auto"} fontSize={"2xl"}>
         {body}
       </Box>
     </Flex>

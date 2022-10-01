@@ -63,6 +63,7 @@ export class userResolver {
 
     const userId = await redis.get(FORGET_PASSWORD_PREFIX + token);
 
+    //if the link is new/token hasn't expired 
     if (!userId) {
       return {
         errors: [
@@ -73,7 +74,8 @@ export class userResolver {
         ],
       };
     }
-
+    
+    //check if user exist
     const user = await fork.findOne(User, { _id: parseInt(userId) });
 
     if (!user) {
@@ -91,6 +93,9 @@ export class userResolver {
 
     await fork.persistAndFlush({ user });
 
+    redis.del()
+
+    //log in user after he/she changes the password
     req.session.userId = parseInt(userId);
 
     return {
