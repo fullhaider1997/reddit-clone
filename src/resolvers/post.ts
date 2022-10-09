@@ -12,60 +12,37 @@ export class PostResolver {
 
   //Arg changes name of indentifier in graphql schema
   @Query(() => Post, { nullable: true })
-  post(@Arg("id") id: number): any {
-    return Post.findOne(id);
+  post(@Arg("id") user_id: number): Promise<Post | null> {
+    return Post.findOne({ where: { _id: user_id } });
   }
 
   @Mutation(() => Post)
-  async createPost(
-    @Arg("title", () => String) title: string,
-    @Ctx() { fork }: MyContext
-  ): Promise<Post> {
-    const post = fork.create(Post, {
-      title,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-
-    await fork.persistAndFlush(post);
-
-    return post;
+  async createPost(@Arg("title", () => String) title: string): Promise<Post> {
+    //2 sql queries to
+    return Post.create({ title }).save();
   }
 
   @Mutation(() => Post, { nullable: true })
   async updatPost(
-    @Arg("id", () => Int) id: number,
-    @Arg("title", () => String, { nullable: true }) title: string,
-    @Ctx() { fork }: MyContext
+    @Arg("id") id: number,
+    @Arg("title", () => String, { nullable: true }) title: string
   ): Promise<Post | null> {
-    const post = await fork.findOne(Post, id);
+    const post = await Post.findOne({ where: { _id: id } });
 
     if (!post) {
       return null;
     }
 
     if (typeof title !== "undefined") {
-      post.title = title;
-
-      await fork.persistAndFlush(post);
+      await Post.update({ _id: id }, { title });
     }
-
-    await fork.persistAndFlush(post);
 
     return post;
   }
 
   @Mutation(() => Boolean)
-  async deletePost(
-    @Arg("id", () => Int) id: number,
-    @Ctx() { fork }: MyContext
-  ): Promise<boolean> {
-    try {
-      const post = await fork.nativeDelete(Post, id);
-    } catch (err) {
-      return false;
-    }
-
+  async deletePost(@Arg("id") id: number): Promise<boolean> {
+    await Post.delete(id);
     return true;
   }
 }

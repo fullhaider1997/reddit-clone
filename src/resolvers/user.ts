@@ -19,6 +19,8 @@ import { v4 } from "uuid";
 import { Token } from "graphql";
 import { FORGET_PASSWORD_PREFIX } from "../constants/constants";
 import Redis from "ioredis";
+import { AppDataSource } from "../data-source";
+
 declare module "express-session" {
   interface Session {
     userId: number;
@@ -48,7 +50,7 @@ export class userResolver {
   async changePassword(
     @Arg("token") token: string,
     @Arg("newPassword") newPassword: string,
-    @Ctx() { fork, redis, req }: MyContext
+    @Ctx() { redis, req }: MyContext
   ): Promise<UserResponse> {
     if (newPassword.length <= 2) {
       return {
@@ -63,7 +65,7 @@ export class userResolver {
 
     const userId = await redis.get(FORGET_PASSWORD_PREFIX + token);
 
-    //if the link is new/token hasn't expired 
+    //if the link is new/token hasn't expired
     if (!userId) {
       return {
         errors: [
@@ -74,9 +76,10 @@ export class userResolver {
         ],
       };
     }
-    
+
+    const userIdNum = parseInt(userId);
     //check if user exist
-    const user = await fork.findOne(User, { _id: parseInt(userId) });
+    const user = await User.findOne({ where: { _id: userIdNum } });
 
     if (!user) {
       return {
@@ -89,11 +92,14 @@ export class userResolver {
       };
     }
 
-    user.password = await argon2.hash(newPassword);
+    await User.update(
+      { _id: userIdNum },
+      {
+        password: await argon2.hash(newPassword),
+      }
+    );
 
-    await fork.persistAndFlush({ user });
-
-    redis.del()
+    redis.del();
 
     //log in user after he/she changes the password
     req.session.userId = parseInt(userId);
@@ -106,11 +112,11 @@ export class userResolver {
   @Mutation(() => Boolean)
   async forgotPassword(
     @Arg("email") email: string,
-    @Ctx() { fork, redis }: MyContext
+    @Ctx() { redis }: MyContext
   ) {
     console.log("Executing forgot....Password");
 
-    const user = await fork.findOne(User, { email: email });
+    const user = await User.findOne({ where: { email: email } });
 
     //the email is not in database
     if (!user) {
@@ -142,7 +148,7 @@ export class userResolver {
   }
 
   @Query(() => User, { nullable: true })
-  async me(@Ctx() { fork, req }: MyContext) {
+  async me(@Ctx() { req }: MyContext) {
     console.log("checking session: me");
 
     console.log(req.session);
@@ -150,20 +156,20 @@ export class userResolver {
       return null;
     }
 
-    const user = await fork.findOne(User, { _id: req.session.userId });
-
-    return user;
+    return User.findOne({ where: { _id: req.session.userId } });
   }
+
   @Query(() => [User])
-  users(@Ctx() { fork }: MyContext): Promise<User[]> {
-    return fork.find(User, {});
+  users(): Promise<User[]> {
+    return User.find();
   }
 
   @Mutation(() => UserResponse)
   async register(
     @Arg("options") options: UsernamePasswordInput,
-    @Ctx() { fork, req }: MyContext
+    @Ctx() { req }: MyContext
   ): Promise<UserResponse> {
+    let user;
     console.log("register");
 
     const errors = validateRegister(options);
@@ -174,17 +180,28 @@ export class userResolver {
 
     const hashedPassword = await argon2.hash(options.password);
 
-    const user = fork.create(User, {
-      username: options.username,
-      password: hashedPassword,
-      createAt: new Date(),
-      updateAt: new Date(),
-      email: options.email,
-    });
+    try {
+      const result = await AppDataSource.createQueryBuilder()
+        .insert()
+        .into(User)
+        .values([
+          { username: options.username },
+          { email: options.email },
+          { password: hashedPassword },
+          { createAt: new Date() },
+          { updateAt: new Date() },
+        ])
+        .returning("*")
+        .execute();
 
-    req.session.userId = user._id;
+      console.log({ result });
+      user = result.raw;
+    } catch (err) {
+      console.log(err);
+    }
+
+    req.session.userId = user.id;
     console.log(req.session);
-    await fork.persistAndFlush(user);
 
     return { user };
   }
@@ -193,14 +210,14 @@ export class userResolver {
   async login(
     @Arg("usernameOrEmail") usernameOrEmail: string,
     @Arg("password") password: string,
-    @Ctx() { fork, req }: MyContext
+    @Ctx() { req }: MyContext
   ): Promise<UserResponse> {
     let userLogin = usernameOrEmail.includes("@")
       ? { email: usernameOrEmail }
       : { username: usernameOrEmail };
 
     console.log("login");
-    const user = await fork.findOne(User, userLogin);
+    const user = await User.findOne({ where: userLogin });
 
     console.log({ user });
     if (!user) {

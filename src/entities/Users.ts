@@ -1,4 +1,5 @@
 import {
+  BaseEntity,
   Column,
   CreateDateColumn,
   Entity,
@@ -10,7 +11,7 @@ import { ObjectType, Field, Int } from "type-graphql";
 @ObjectType()
 //Each field maps into database column
 @Entity()
-export class User {
+export class User extends BaseEntity {
   @Field(() => Int)
   @PrimaryGeneratedColumn({ type: "number" })
   _id!: number;
